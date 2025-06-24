@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: . 
+      dockerfile: Dockerfile
+    command: npm run dev
+    working_dir: /usr/src/app/backend
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./backend:/usr/src/app/backend
+      - ./nexusmind-web-ui:/usr/src/app/nexusmind-web-ui
+      - node_modules:/usr/src/app/backend/node_modules
+    healthcheck:
+      # --- CHANGE THIS LINE BACK TO USE CURL ---
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  node_modules:
