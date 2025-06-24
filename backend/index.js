@@ -9,8 +9,8 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Serve static files (your index.html, css, js) from the 'public' directory
-app.use(express.static(path.join(__dirname, 'public')));
+// Serve static files from the 'nexusmind-web-ui' directory
+app.use(express.static(path.join(__dirname, '../nexusmind-web-ui')));
 
 // API health check route
 app.get('/api/health', (req, res) => {
@@ -19,7 +19,7 @@ app.get('/api/health', (req, res) => {
 
 // Fallback route for Single-Page Applications (SPA)
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/index.html'));
+  res.sendFile(path.join(__dirname, '../nexusmind-web-ui/index.html'));
 });
 
 app.listen(PORT, () => {

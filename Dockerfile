@@ -1,31 +1,20 @@
-# Stage 1: Install dependencies
-FROM node:20-alpine as deps
+# Use an official Node.js runtime as a parent image
+FROM node:18-alpine
 
-WORKDIR /app
+# Set the working directory in the container
+WORKDIR /usr/src/app
 
-# Copy the package.json and package-lock.json from the backend
-COPY backend/package*.json ./
+# Copy the backend's package.json and package-lock.json
+COPY backend/package*.json ./backend/
 
-# Install production dependencies using 'npm ci' for reliability
-RUN npm ci
+# Install backend dependencies
+RUN npm install --prefix backend
 
-# Stage 2: Create the final production image
-FROM node:20-alpine
+# Copy the rest of your application code
+COPY . .
 
-WORKDIR /app
-
-# Copy the installed node_modules from the 'deps' stage
-COPY --from=deps /app/node_modules ./node_modules
-
-# Copy the backend application code
-COPY backend .
-
-# Copy the static frontend files into the 'public' directory,
-# which the backend will serve.
-COPY nexusmind-web-ui ./public
-
-# Expose the port that the backend server will run on
+# Your app binds to port 3000, so expose it
 EXPOSE 3000
 
-# The command to start the Node.js backend server
-CMD ["node", "index.js"]
+# Define the command to run your app
+CMD [ "node", "backend/index.js" ]
