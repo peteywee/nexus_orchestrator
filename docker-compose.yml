@@ -1,25 +1,89 @@
-version: '3.8'
-
 services:
-  app:
+  orchestrator:
     build:
       context: . 
       dockerfile: Dockerfile
-    command: npm run dev
+    image: peteywee/nexus-orchestrator:latest
+    command: npm start
     working_dir: /usr/src/app/backend
     ports:
-      - "3001:3000"
+      - "3004:3000" # <--- UPDATED
     volumes:
       - ./backend:/usr/src/app/backend
       - ./nexusmind-web-ui:/usr/src/app/nexusmind-web-ui
       - node_modules:/usr/src/app/backend/node_modules
     healthcheck:
-      # --- CHANGE THIS LINE BACK TO USE CURL ---
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
 
+  agent-research:
+    build:
+      context: ./agents/research
+      dockerfile: Dockerfile
+    image: peteywee/nexus-agent-research:latest
+    environment:
+      - ORCHESTRATOR_URL=ws://orchestrator:3000
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+
+  agent-comms:
+    build:
+      context: ./agents/comms
+      dockerfile: Dockerfile
+    image: peteywee/nexus-agent-comms:latest
+    environment:
+      - ORCHESTRATOR_URL=ws://orchestrator:3000
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+
+  agent-ops-execution:
+    build:
+      context: ./agents/ops-execution
+      dockerfile: Dockerfile
+    image: peteywee/nexus-agent-ops:latest
+    environment:
+      - ORCHESTRATOR_URL=ws://orchestrator:3000
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+
+  agent-strategy:
+    build:
+      context: ./agents/strategy
+      dockerfile: Dockerfile
+    image: peteywee/nexus-agent-strategy:latest
+    environment:
+      - ORCHESTRATOR_URL=ws://orchestrator:3000
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=nexus_user
+      - POSTGRES_PASSWORD=your_strong_password_here # <-- IMPORTANT: Change this
+      - POSTGRES_DB=nexus_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
 volumes:
   node_modules:
+  postgres-data:
+  redis-data:
