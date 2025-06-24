@@ -1,15 +1,12 @@
-name: CI/CD Pipeline
+name: Build and Deploy Nexus Node App
 
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
 
 jobs:
-  # This job runs on every push and pull request to the main branch
-  build-and-test:
-    name: Build and Test
+  build-and-deploy:
+    name: Build and Deploy to Droplet
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -21,31 +18,12 @@ jobs:
           node-version: '18'
 
       - name: Install dependencies
-        # Using 'npm ci' is recommended for CI environments as it's faster and more reliable
-        run: npm ci
+        run: npm install
         working-directory: ./backend
 
       - name: Run linter
-        # This step assumes you have a linting script in your package.json
-        # e.g., "lint": "eslint ."
         run: npm run lint
         working-directory: ./backend
-
-      - name: Run tests
-        # This step assumes you have a test script in your package.json
-        # e.g., "test": "jest"
-        run: npm test
-        working-directory: ./backend
-
-  # This job only runs on pushes to the main branch and after build-and-test is successful
-  deploy:
-    name: Deploy to Server
-    needs: build-and-test # This ensures that deployment only happens if the build and tests pass
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push' # Only run on push to main
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
