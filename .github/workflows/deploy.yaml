@@ -1,30 +1,68 @@
-- name: Deploy to Server via SSH
+# Workflow: Deploy to Server via SSH
+# Description: Deploys the Nexus Orchestrator application to the server using Docker.
+# Prerequisites:
+# - SSH credentials and Docker Hub credentials are stored as GitHub secrets
+# - Docker installed on the target server
+# - Server firewall allows required ports
+
+name: Deploy to Server
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to Server via SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.DO_SSH_HOST }}
           username: ${{ secrets.DO_SSH_USER }}
           key: ${{ secrets.DO_SSH_PRIVATE_KEY }}
           script: |
-            # Define image name and container name
-            IMAGE_NAME=tssprotx/nexus-orchestrator:latest
-            CONTAINER_NAME=nexus-app
+            # Set deployment variables
+            IMAGE_NAME="tssprotx/nexus-orchestrator:1.0.0"  # Use explicit version, not 'latest'
+            CONTAINER_NAME="nexus-app"
+            HOST_PORT=80
+            CONTAINER_PORT=3000
 
-            # Log in to Docker Hub on the server
+            echo "Starting deployment..."
+
+            # Login to Docker Hub
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+            if [ $? -ne 0 ]; then
+              echo "Docker login failed!" >&2
+              exit 1
+            fi
 
-            # Pull the latest image
+            # Pull the latest image version
             docker pull $IMAGE_NAME
+            if [ $? -ne 0 ]; then
+              echo "Docker image pull failed!" >&2
+              exit 1
+            fi
 
-            # Stop and remove the old container if it exists
+            # Stop and remove old container if exists
             docker stop $CONTAINER_NAME || true
             docker rm $CONTAINER_NAME || true
 
-            # Run the new container
+            # Run new container with restart policy
             docker run -d \
-              -p 80:3000 \
+              -p $HOST_PORT:$CONTAINER_PORT \
               --name $CONTAINER_NAME \
               --restart always \
               $IMAGE_NAME
+            if [ $? -ne 0 ]; then
+              echo "Container start failed!" >&2
+              exit 1
+            fi
 
-            # Clean up old, unused Docker images
-            docker image prune -af
+            # Clean up unused Docker images
+            docker image prune -af || true
+
+            echo "Deployment completed successfully."
